@@ -4,15 +4,15 @@
 
 //webDAV class
 typedef struct {
-		PyObject_HEAD
-		//self.inp = args.get('inp', sys.stdin)
-		//self.out = args.get('out', sys.stdout)
-		//self.err = args.get('err', sys.stderr)
-		int oauth; //oauth flag
-		int verbose; //verbosity flag
-		char *authHeader; //authHeader
-		char *user; //username
-		//char *spaceHost = "webdav.yandex.ru"; //spaceHost
+	PyObject_HEAD
+	//self.inp = args.get('inp', sys.stdin)
+	//self.out = args.get('out', sys.stdout)
+	//self.err = args.get('err', sys.stderr)
+	int oauth; //oauth flag
+	int verbose; //verbosity flag
+	char *authHeader; //authHeader
+	char *user; //username
+	//char *spaceHost = "webdav.yandex.ru"; //spaceHost
 } webDAV;
 
 static int webDAV_init(webDAV *self, PyObject *args, PyObject *kwds) {
@@ -41,6 +41,12 @@ static PyObject *webDAV_catchCode(webDAV *self) {
 	Py_RETURN_NONE;
 }
 
+static PyObject *webDAV_run(webDAV *self, PyObject *arg, PyObject *kargs, int inter) {
+	//Don't work if it isn't working. It is normal state
+	printf("%d\n", inter);
+	Py_RETURN_NONE;
+}
+
 static void webDAV_dealloc(webDAV *self) {
 	self->ob_type->tp_free((PyObject*)self);
 }
@@ -50,21 +56,26 @@ static PyMemberDef webDAV_members[] = {
 	{"verbose",  T_INT, offsetof(webDAV, verbose), 0, "True if debug information should be written to err, False otherwise (default)."},
 	{"user", T_STRING, offsetof(webDAV, user), 0, "string with login"},
 	{"authHeader", T_STRING, offsetof(webDAV, authHeader), 0, 
-							"string with crypted login-password pair(should be secureted or obsoleted)"},
+		"string with crypted login-password pair(should be secureted or obsoleted)"},
 	{NULL}
 };
 
 static PyMethodDef webDAV_methods[] = {
 	{"login", (PyCFunction) webDAV_login, METH_KEYWORDS,
 		"login([login = <str>, password = <str>, authHeader = <str>])\n\
-Sets self.authHeader, which is string used as value of 'Authorization' header.\n\
-You can login from authHeader if you have one, or with login, password pair (dict).\n\
-With empty arguments will start two dialogs to build self.authHeader.\n\
-In all cases you can set oauth = True to use oauth2 protocol."},
+			Sets self.authHeader, which is string used as value of 'Authorization' header.\n\
+			You can login from authHeader if you have one, or with login, password pair (dict).\n\
+			With empty arguments will start two dialogs to build self.authHeader.\n\
+			In all cases you can set oauth = True to use oauth2 protocol."},
 	{"catchCode", (PyCFunction) webDAV_catchCode, METH_NOARGS,
-		"catchCode() -> oauth2 code\n\
-Catches oauth2 code.\n\
-See http://api.yandex.ru/oauth/doc/dg/reference/obtain-access-token.xml for more info."},
+			"catchCode() -> oauth2 code\n\
+				Catches oauth2 code.\n\
+				See http://api.yandex.ru/oauth/doc/dg/reference/obtain-access-token.xml for more info."},
+	{"run", (PyCFunction) webDAV_run, METH_VARARGS | METH_KEYWORDS,
+			"run(arg)\n\
+				Runs commands.\n\
+				For example self.run(['listDir', 'myCol']) will be parsed to self.listDir('myCol', inter = True)\n"
+	},
 	{NULL}  /* Sentinel */
 };
 
