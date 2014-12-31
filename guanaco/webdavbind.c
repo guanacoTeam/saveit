@@ -1,6 +1,10 @@
 #include<Python.h>
 #include<structmember.h>
 #include<ne_socket.h>
+#include<ne_utils.h>
+#include<ne_session.h>
+
+static int status;
 
 //webDAV class
 //Don't work if it isn't working. It is normal state
@@ -13,7 +17,8 @@ typedef struct {
 	int verbose; //verbosity flag
 	char *authHeader; //authHeader
 	char *user; //username
-	//char *spaceHost = "webdav.yandex.ru"; //spaceHost
+	char *spaceHost; // = "webdav.yandex.ru"; //spaceHost
+	ne_session *neonSes; //neon session
 } webDAV;
 
 static int webDAV_init(webDAV *self, PyObject *args, PyObject *kwds) {
@@ -26,10 +31,20 @@ static int webDAV_init(webDAV *self, PyObject *args, PyObject *kwds) {
 	self->verbose = 0;
 	self->authHeader = NULL;
 	self->user = NULL;
+	self->spaceHost = "webdav.yandex.ru";
+	//printf("SSL\t\t%d\nZLIB\t\t%d\nIPV6\t\t%d\nLFS\t\t%d\nSOCKSv5\t\t%d\nTS SSL\t\t%d\n", 
+	//	ne_has_support(NE_FEATURE_SSL), ne_has_support(NE_FEATURE_ZLIB), ne_has_support(NE_FEATURE_IPV6),
+	//	ne_has_support(NE_FEATURE_LFS), ne_has_support(NE_FEATURE_SOCKS), ne_has_support(NE_FEATURE_TS_SSL));
 	//passwd = args.get('password')
+	if (status && !ne_sock_init()) { //trying to init neon
+		perror("Global neon error!\n");
+		exit(-1);
+	}
+	++status;
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iiss", kwlist, &self->verbose, &self->oauth, &self->authHeader, &self->user))
 		return -1;
 	//End of parsing
+	//Init of all
 	//self.login(oauth = self.oauth, login = self.user, password = passwd)
 	return 0;
 }
@@ -75,10 +90,13 @@ static PyObject *webDAV_getId(webDAV *self) {
 }
 
 static PyObject *webDAV_getSecret(webDAV *self) {
-	return Py_BuildVAlue("i", 0);
+	return Py_BuildValue("i", 0);
 }
 
 static void webDAV_dealloc(webDAV *self) {
+	--status;
+	if (!status)
+		ne_sock_exit();
 	self->ob_type->tp_free((PyObject*)self);
 }
 
@@ -89,6 +107,8 @@ static PyMemberDef webDAV_members[] = {
 	{"user", T_STRING, offsetof(webDAV, user), 0, "string with login"},
 	{"authHeader", T_STRING, offsetof(webDAV, authHeader), 0, 
 		"string with encrypted login-password pair(should be secured or obsoleted)"},
+	{"spaceHost", T_STRING, offsetof(webDAV, spaceHost), 0,
+		"adress of cloud"},
 	{NULL}
 };
 
@@ -198,6 +218,7 @@ static PyMethodDef module_methods[] = {
 
 void initwebdav(void) {
 	PyObject* m;
+	status = 0;
 
 	webDAVType.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&webDAVType) < 0)
