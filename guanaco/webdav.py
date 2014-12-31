@@ -416,7 +416,7 @@ class webDAV:
 
 	def __getSecret(self):
 		"""
-		return secret od app
+		return secret of app
 		"""
 		return 0
 
