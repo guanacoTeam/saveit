@@ -3,6 +3,7 @@
 #include<ne_socket.h>
 
 //webDAV class
+//Don't work if it isn't working. It is normal state
 typedef struct {
 	PyObject_HEAD
 	//self.inp = args.get('inp', sys.stdin)
@@ -41,10 +42,40 @@ static PyObject *webDAV_catchCode(webDAV *self) {
 	Py_RETURN_NONE;
 }
 
-static PyObject *webDAV_run(webDAV *self, PyObject *arg, PyObject *kargs, int inter) {
-	//Don't work if it isn't working. It is normal state
-	printf("%d\n", inter);
+static PyObject *webDAV_run(webDAV *self, PyObject *arg, PyObject *kwds) {
 	Py_RETURN_NONE;
+}
+
+static PyObject *webDAV_listDir(webDAV *self, PyObject *arg, PyObject *kwds) {
+	Py_RETURN_NONE;
+}
+
+static PyObject *webDAV_download(webDAV *self, PyObject *arg, PyObject *kwds) {
+	Py_RETURN_NONE;
+}
+
+static PyObject *webDAV_upload(webDAV *self, PyObject *arg, PyObject *kwds) {
+	Py_RETURN_NONE;
+}
+
+static PyObject *webDAV_copy(webDAV *self, PyObject *arg, PyObject *kwds) {
+	Py_RETURN_NONE;
+}
+
+static PyObject *webDAV_mkcol(webDAV *self, PyObject *arg, PyObject *kwds) {
+	Py_RETURN_NONE;
+}
+
+static PyObject *webDAV_delete(webDAV *self, PyObject *arg, PyObject *kwds) {
+	Py_RETURN_NONE;
+}
+
+static PyObject *webDAV_getId(webDAV *self) {
+	return Py_BuildValue("i", 0);
+}
+
+static PyObject *webDAV_getSecret(webDAV *self) {
+	return Py_BuildVAlue("i", 0);
 }
 
 static void webDAV_dealloc(webDAV *self) {
@@ -53,10 +84,11 @@ static void webDAV_dealloc(webDAV *self) {
 
 static PyMemberDef webDAV_members[] = {
 	{"oauth",  T_INT, offsetof(webDAV, oauth), 0, "True if oauth2 should be used, False otherwise (default)"},
-	{"verbose",  T_INT, offsetof(webDAV, verbose), 0, "True if debug information should be written to err, False otherwise (default)."},
+	{"verbose",  T_INT, offsetof(webDAV, verbose), 0,
+		"True if debug information should be written to err, False otherwise (default)."},
 	{"user", T_STRING, offsetof(webDAV, user), 0, "string with login"},
 	{"authHeader", T_STRING, offsetof(webDAV, authHeader), 0, 
-		"string with crypted login-password pair(should be secureted or obsoleted)"},
+		"string with encrypted login-password pair(should be secured or obsoleted)"},
 	{NULL}
 };
 
@@ -66,15 +98,56 @@ static PyMethodDef webDAV_methods[] = {
 			Sets self.authHeader, which is string used as value of 'Authorization' header.\n\
 			You can login from authHeader if you have one, or with login, password pair (dict).\n\
 			With empty arguments will start two dialogs to build self.authHeader.\n\
-			In all cases you can set oauth = True to use oauth2 protocol."},
+			In all cases you can set oauth = True to use oauth2 protocol."
+	},
 	{"catchCode", (PyCFunction) webDAV_catchCode, METH_NOARGS,
 			"catchCode() -> oauth2 code\n\
 				Catches oauth2 code.\n\
-				See http://api.yandex.ru/oauth/doc/dg/reference/obtain-access-token.xml for more info."},
-	{"run", (PyCFunction) webDAV_run, METH_VARARGS | METH_KEYWORDS,
+				See http://api.yandex.ru/oauth/doc/dg/reference/obtain-access-token.xml for more info."
+	},
+	{"run", (PyCFunction) webDAV_run, METH_KEYWORDS,
 			"run(arg)\n\
 				Runs commands.\n\
-				For example self.run(['listDir', 'myCol']) will be parsed to self.listDir('myCol', inter = True)\n"
+				For example self.run(['listDir', 'myCol']) will be parsed to self.listDir('myCol', inter = True)"
+	},
+	{"listDir", (PyCFunction) webDAV_listDir, METH_KEYWORDS,
+		"listDir('remote/path'[, inter = False]) -> content of /remote/path\n\
+			List content /remote/path.\n\
+			If /remote/path is collection 'content' is files and collection located in it, /remote/path object otherwise.\n\
+			If inter = True plain list of content will be written to self.out 'one-by-line',\n\
+			list of dictionaries with 'name', 'mime' and 'href' fields will be returned otherwise.\n\
+			For elem in result:\n\
+			elem['name'] is display name\n\
+			elem['href'] is absolute path in the server\n\
+			elem['type'] is MIME type of elem"
+	},
+	{"download", (PyCFunction) webDAV_download, METH_KEYWORDS,
+		"download('remote/path/to/f', 'local/path'[, toString = False])\n\
+			Downloads file from remote/path/to/f as local/path/f.\n\
+			If toString = True content of remote/path/to/f will be returned as string."
+	},
+	{"upload", (PyCFunction) webDAV_upload, METH_KEYWORDS,
+		"upload('local/path/to/f', 'remote/path'[, fromString = False])\n\
+			Uploads file from local/path/to/f as remote/path/f.\n\
+			If fromString = True first argument will be uploaded as remote/path."
+	},
+	{"copy", (PyCFunction) webDAV_copy, METH_KEYWORDS,
+		"copy('remote/path/to/f', 'another/location/path')\n\
+		Copies file from remote/path/to/f to another/location/path/."
+	},
+	{"mkcol", (PyCFunction) webDAV_mkcol, METH_KEYWORDS,
+		"mkcol('path/to/new/directory/col')\n\
+			Makes collection col in server at /path/to/new/directory which exist."
+	},
+	{"delete", (PyCFunction) webDAV_delete, METH_KEYWORDS,
+		"delete('path/to/smth')\n\
+			Deletes /path/to/smth."
+	},
+	{"getId", (PyCFunction) webDAV_getId, METH_NOARGS,
+		"return id of app."
+	},
+	{"__getSecret", (PyCFunction) webDAV_getSecret, METH_NOARGS,
+		"return secret of app."
 	},
 	{NULL}  /* Sentinel */
 };
