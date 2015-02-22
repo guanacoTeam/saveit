@@ -3,6 +3,7 @@
 #include<ne_socket.h>
 #include<ne_utils.h>
 #include<ne_session.h>
+#include"getpass.h"
 
 static int status;
 
@@ -13,44 +14,71 @@ typedef struct {
 	//self.inp = args.get('inp', sys.stdin)
 	//self.out = args.get('out', sys.stdout)
 	//self.err = args.get('err', sys.stderr)
-	int oauth; //oauth flag
-	int verbose; //verbosity flag
+	long int oauth; //oauth flag
+	long int verbose; //verbosity flag
+	size_t authL; //authHeader length
 	char *authHeader; //authHeader
+	size_t userL; //username length
 	char *user; //username
-	char *spaceHost; // = "webdav.yandex.ru"; //spaceHost
+	size_t spaceL; //cloud address length
+	char *spaceHost; //cloud address
 	ne_session *neonSes; //neon session
 } webDAV;
 
 static int webDAV_init(webDAV *self, PyObject *args, PyObject *kwds) {
-	//static char *kwlist[] = {"inp", "out", "err", "verbose", "oauth", "login", "password"};
-	static char *kwlist[] = {"verbose", "oauth", "authHeader", "login"};
-	//self.inp = args.get('inp', sys.stdin)
-	//self.out = args.get('out', sys.stdout)
-	//self.err = args.get('err', sys.stderr)
-	self->oauth = 0;
-	self->verbose = 0;
-	self->authHeader = NULL;
-	self->user = NULL;
+	int passL = 0;
+	char *password = NULL;
+	char *kwlist[] = {"verbose", "oauth", "authHeader", "login"};
+	self->oauth = 0L;
+	self->verbose = 0L;
+	self->authL = 0;
+	self->authHeader = "";
+	self->userL = 0;
+	self->user = "";
+	self->spaceL = 17;
 	self->spaceHost = "webdav.yandex.ru";
-	//printf("SSL\t\t%d\nZLIB\t\t%d\nIPV6\t\t%d\nLFS\t\t%d\nSOCKSv5\t\t%d\nTS SSL\t\t%d\n", 
-	//	ne_has_support(NE_FEATURE_SSL), ne_has_support(NE_FEATURE_ZLIB), ne_has_support(NE_FEATURE_IPV6),
-	//	ne_has_support(NE_FEATURE_LFS), ne_has_support(NE_FEATURE_SOCKS), ne_has_support(NE_FEATURE_TS_SSL));
+	self->neonSes = NULL;
 	//passwd = args.get('password')
-	if (status && !ne_sock_init()) { //trying to init neon
-		perror("Global neon error!\n");
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iiz#z#z#", kwlist, 
+				&self->verbose, &self->oauth, self->authHeader,
+				&self->authL, &self->user, &self->userL, &password, &passL))
+		return -1;
+	if (!status && ne_sock_init()) { //trying to init neon
+		printf("%d\n", status);
+		perror("Global neon error!");
 		exit(-1);
 	}
 	++status;
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iiss", kwlist, &self->verbose, &self->oauth, &self->authHeader, &self->user))
-		return -1;
 	//End of parsing
 	//Init of all
+	//self->
 	//self.login(oauth = self.oauth, login = self.user, password = passwd)
+	//webDAV_login(self, Py_BuildValue("{s:s, s:}"))
 	return 0;
 }
 
-static PyObject *webDAV_login(webDAV *self, PyObject *kargs) {
-	Py_RETURN_NONE;
+static int webDAV_login(webDAV *self , char *user, size_t userL, char *password, size_t passL) {
+	getpasswd(&user, &userL, &password, &passL);
+	return 1;
+}
+
+static PyObject *webDAV_PyLogin(webDAV *self, PyObject *args, PyObject *kwds) {
+	int oauth = 0;
+	size_t userL = 0, passL = 0;
+	char *user = "", *password = "";
+	char *kwlist[] = {"oauth", "login", "password"};
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iz#z#", kwlist, &oauth, &user, &userL, &password, &passL)) {
+		return NULL;
+	}
+	if (!oauth)
+		if (webDAV_login(self, user, userL, password, passL))
+			Py_RETURN_TRUE;
+		else
+			Py_RETURN_FALSE;
+	else {
+		fprintf(stderr, "Oauth2 protocol is not implemented yet!\n");
+		Py_RETURN_NONE;
+	}
 }
 
 static PyObject *webDAV_catchCode(webDAV *self) {
@@ -85,6 +113,10 @@ static PyObject *webDAV_delete(webDAV *self, PyObject *arg, PyObject *kwds) {
 	Py_RETURN_NONE;
 }
 
+static PyObject *webDAV_verbose(webDAV *self) {
+	return PyBool_FromLong(self->verbose);
+}
+
 static PyObject *webDAV_getId(webDAV *self) {
 	return Py_BuildValue("i", 0);
 }
@@ -102,8 +134,6 @@ static void webDAV_dealloc(webDAV *self) {
 
 static PyMemberDef webDAV_members[] = {
 	{"oauth",  T_INT, offsetof(webDAV, oauth), 0, "True if oauth2 should be used, False otherwise (default)"},
-	{"verbose",  T_INT, offsetof(webDAV, verbose), 0,
-		"True if debug information should be written to err, False otherwise (default)."},
 	{"user", T_STRING, offsetof(webDAV, user), 0, "string with login"},
 	{"authHeader", T_STRING, offsetof(webDAV, authHeader), 0, 
 		"string with encrypted login-password pair(should be secured or obsoleted)"},
@@ -113,7 +143,9 @@ static PyMemberDef webDAV_members[] = {
 };
 
 static PyMethodDef webDAV_methods[] = {
-	{"login", (PyCFunction) webDAV_login, METH_KEYWORDS,
+	{"verbose",  (PyCFunction) webDAV_verbose, METH_NOARGS,
+		"True if debug information should be written to err, False otherwise (default)."},
+	{"login", (PyCFunction) webDAV_PyLogin, METH_VARARGS|METH_KEYWORDS,
 		"login([login = <str>, password = <str>, authHeader = <str>])\n\
 			Sets self.authHeader, which is string used as value of 'Authorization' header.\n\
 			You can login from authHeader if you have one, or with login, password pair (dict).\n\
