@@ -40,7 +40,7 @@ static int webDAV_init(webDAV *self, PyObject *args, PyObject *kwds) {
 	self->neonSes = NULL;
 	//passwd = args.get('password')
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iiz#z#z#", kwlist, 
-				&self->verbose, &self->oauth, self->authHeader,
+				&self->verbose, &self->oauth, &self->authHeader,
 				&self->authL, &self->user, &self->userL, &password, &passL))
 		return -1;
 	if (!status && ne_sock_init()) { //trying to init neon
@@ -58,6 +58,7 @@ static int webDAV_init(webDAV *self, PyObject *args, PyObject *kwds) {
 }
 
 static int webDAV_login(webDAV *self , char *user, size_t userL, char *password, size_t passL) {
+	//TODO
 	getpasswd(&user, &userL, &password, &passL);
 	return 1;
 }
