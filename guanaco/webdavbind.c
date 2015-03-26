@@ -8,7 +8,7 @@
 static int status;
 
 //webDAV class
-//Don't work if it isn't working. It is normal state
+//Don't worry if it isn't working. It is normal state
 typedef struct {
 	PyObject_HEAD
 	//self.inp = args.get('inp', sys.stdin)

@@ -8,6 +8,8 @@ Flags:
 --oauth -- force client to use ouath2 protocol to authorization. Not recomended.
 """
 # -*- coding : utf8 -*-
+import pyneon
+
 import sys, getopt, os
 import urlparse, httplib, json, urllib
 import getpass, base64
