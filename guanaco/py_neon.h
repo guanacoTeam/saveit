@@ -1,17 +1,23 @@
 #ifndef PY_HEON_H
 #define PY_NEON_H 1
-#include<Python.h>
-#include<structmember.h>
+#include<ne_request.h>
+#include<ne_session.h>
 #include<ne_socket.h>
 #include<ne_utils.h>
-#include<ne_session.h>
-#include<ne_request.h>
+#include<Python.h>
+#include<structmember.h>
 
 extern void initpyneon(void);
 
 extern int neon_status;
 
 extern PyMethodDef pyneon_methods[];
+
+//NeIAddr
+typedef struct {
+	PyObject_HEAD;
+	ne_inet_addr *ne_iaddr
+} PyNeIAddr
 
 //NeSession
 typedef struct {
@@ -40,7 +46,6 @@ extern void PyNeSession_system_proxy(PyNeSession *self, PyObject *args, PyObject
 extern void PyNeSession_socks_proxy(PyNeSession *self, PyObject *args, PyObject *kwds);
 
 extern void PyNeSession_set_addrlist(PyNeSession *self, PyObject *args, PyObject *kwds);
-
 
 extern PyMemberDef PyNeSession_members[];
 

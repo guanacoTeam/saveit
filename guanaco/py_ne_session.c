@@ -1,15 +1,17 @@
 #include"py_neon.h"
-//TODO: It crashes with SIGSEV after attempts of initialization
 
 int PyNeSession_init(PyNeSession *self, PyObject *args, PyObject *kwds) {
 	char *scheme = NULL, *hostname = NULL;
 	unsigned int port = 0;
-	char *kwlist[] = {"scheme", "hostname", "port"};
+	char *kwlist[] = {"scheme", "hostname", "port", NULL};
 	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ssI", kwlist, &scheme, &hostname, &port))
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ssI", kwlist, &scheme, &hostname, &port)) {
+		//FIXME: with bad arguments to __init__ it crushes to SIGSEGV not to Python Error
 		return -1;
+	}
 
 	ne_sock_init();
+
 	self->ne_sess = ne_session_create(scheme, hostname, port);
 	++neon_status;
 	return 0;

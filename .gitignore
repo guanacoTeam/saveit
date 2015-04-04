@@ -1,0 +1,10 @@
+*.out
+*.so
+*.pyc
+build/*
+guanaco/build/*
+test*
+
+err
+inp
+out

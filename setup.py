@@ -2,7 +2,7 @@ from distutils.core import setup, Extension
 
 neon = Extension(
 	name = 'pyneon',
-	sources = ['guanaco/py_ne_proxy.c', 'guanaco/py_ne_session.c', 'guanaco/py_neon.c'],
+	sources = ['guanaco/py_ne_iaddr.c', 'guanaco/py_neon.c', 'guanaco/py_ne_proxy.c', 'guanaco/py_ne_session.c'],
 	include_dirs = ['/usr/include/neon'],
 	library_dirs = ['/usr/lib'],
 	libraries = ['neon-gnutls'],

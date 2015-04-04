@@ -7,7 +7,7 @@ PyMethodDef pyneon_methods[] = {
 };
 
 void initpyneon(void) {
-	int ne_sess_flag = 0, socks = 0;
+	int enumer = 0;
 	PyObject* module;
 	neon_status = 0;
 
@@ -27,17 +27,23 @@ void initpyneon(void) {
 	if (module == NULL)
 		return;
 
-    	PyModule_AddIntConstant(module, "persist", ne_sess_flag++);
-    	PyModule_AddIntConstant(module, "icy", ne_sess_flag++);
-    	PyModule_AddIntConstant(module, "ssl2", ne_sess_flag++);
-    	PyModule_AddIntConstant(module, "rfc4918", ne_sess_flag++);
-    	PyModule_AddIntConstant(module, "connauth", ne_sess_flag++);
-    	PyModule_AddIntConstant(module, "tlssni", ne_sess_flag++);
-    	PyModule_AddIntConstant(module, "expect100", ne_sess_flag++);
-    	PyModule_AddIntConstant(module, "last", ne_sess_flag++);
-    	PyModule_AddIntConstant(module, "sv4", socks++);
-    	PyModule_AddIntConstant(module, "sv4a", socks++);
-    	PyModule_AddIntConstant(module, "sv5", socks++);
+    	PyModule_AddIntConstant(module, "persist", enumer++);
+    	PyModule_AddIntConstant(module, "icy", enumer++);
+    	PyModule_AddIntConstant(module, "ssl2", enumer++);
+    	PyModule_AddIntConstant(module, "rfc4918", enumer++);
+    	PyModule_AddIntConstant(module, "connauth", enumer++);
+    	PyModule_AddIntConstant(module, "tlssni", enumer++);
+    	PyModule_AddIntConstant(module, "expect100", enumer++);
+    	PyModule_AddIntConstant(module, "last", enumer++);
+
+	enumer = 0;
+    	PyModule_AddIntConstant(module, "sv4", enumer++);
+    	PyModule_AddIntConstant(module, "sv4a", enumer++);
+    	PyModule_AddIntConstant(module, "sv5", enumer++);
+
+	enumer = 0;
+    	PyModule_AddIntConstant(module, "ipv4", enumer++);
+    	PyModule_AddIntConstant(module, "ipv6", enumer++);
 
 	Py_INCREF(&PyNeSessionType);
 	PyModule_AddObject(module, "NeSession", (PyObject *)&PyNeSessionType);

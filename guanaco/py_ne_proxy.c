@@ -36,7 +36,7 @@ extern void PyNeSession_socks_proxy(PyNeSession *self, PyObject *args, PyObject 
 	return ;
 }
 
-//TODO
 extern void PyNeSession_set_addrlist(PyNeSession *self, PyObject *args, PyObject *kwds) {
+	//TODO
 	return ;
 }
