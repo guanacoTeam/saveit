@@ -8,7 +8,8 @@ Flags:
 --oauth -- force client to use ouath2 protocol to authorization. Not recomended.
 """
 # -*- coding : utf8 -*-
-import pyneon
+#import pyneon
+import ctypes
 
 import sys, getopt, os
 import urlparse, httplib, json, urllib
@@ -55,6 +56,7 @@ class webDAV:
 	"""
 	#clouds
 	spaceHost = 'webdav.yandex.ru'
+	localHost = 'localhost'
 	#for debug
 	#spaceHost = 'localhost:8180'
 
@@ -78,6 +80,8 @@ class webDAV:
 		self.verbose = args.get('verbose', False)
 		self.authHeader = args.get('authHeader', '')
 		self.user = args.get('login')
+		if args.get('local', True):
+			self.spaceHost = self.localHost
 		passwd = args.get('password')
 		#End of parsing
 		self.login(oauth = self.oauth, login = self.user, password = passwd)
