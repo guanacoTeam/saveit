@@ -9,8 +9,8 @@ Flags:
 """
 # -*- coding : utf8 -*-
 #import pyneon
+from ctypes import *
 import requests
-import ctypes
 import kerberos
 
 import sys, atexit, getopt, os
@@ -87,12 +87,14 @@ class webDAV:
 		if args.get('local', True):
 			self.spaceHost = self.localHost
 			#FIXME: Only for dev purposes
-			local_cert = neon.ne_ssl_cert_read("webdav.pem")
+			localCert = neon.ne_ssl_cert_read("webdav.pem")
 		#End of parsing
 		self.sess = neon.ne_session_create("https", self.spaceHost, self.port)
 		if args.get('local', True):
 			#FIXME: Only for dev purposes
-			neon.ne_ssl_trust_cert(self.sess, local)
+			def trust(a, b, c):
+				return 0
+			neon.ne_ssl_set_verify(self.sess, NeCertVer(trust), None)
 		self.login(oauth = self.oauth, login = self.user, password = self.passwd)
 
 	def login(self, **kargs):
@@ -187,7 +189,42 @@ class webDAV:
 				exec(com)
 			return r
 
+	def propIter(self, userdata, pname, value, status):
+		print "\tprop %s value is %s" % (pname.value.name, value)
+		return 0
+
+	def propView(self, userdata, uri, results):
+		#TODO:
+		print "Ok from propView"
+		print uri
+		neon.ne_propset_iterate(results, NePropIter(self.propIter), userdata)
+
 	def listDir(self, *args, **kargs):
+		"""
+		listDir('remote/path'[, inter = False]) -> content of /remote/path
+		List content /remote/path.
+		If /remote/path is collection 'content' is files and collection located in it, /remote/path object otherwise.
+		If inter = True plain list of content will be written to self.out 'one-by-line',
+		list of dictionaries with 'hame', 'mime' and 'href' fields will be returned otherwise.
+		For elem in result:
+		elem['name'] is display name
+		elem['href'] is absolute path in the server
+		elem['type'] is MIME type of elem
+		"""
+		path = args[0] if len(args) > 0 else '/'  # parse remote path from the args
+		if path[0] != '/':  # path should be start from /
+			path = '/' + path
+		if path[-1] != '/':  # and ends to /
+			path += '/'
+		inter = kargs.get('inter', False)
+		if inter:
+			print "Ok from listDir"
+			ne = neon.ne_simple_propfind(self.sess, path, 1, None, NePropView(self.propView), None)
+			print c_char_p(neon.ne_get_error(self.sess)).value
+		else:
+			return NotImplemented
+
+	def listDirObsolete(self, *args, **kargs):
 		"""
 		listDir('remote/path'[, inter = False]) -> content of /remote/path
 		List content /remote/path.
@@ -456,13 +493,16 @@ class webDAV:
 		return self.spaceHost
 
 #Neon init
-neon = ctypes.CDLL("libneon.so")
+neon = CDLL("libneon.so")
 if neon.ne_sock_init():
 	sys.stderr.write("WARNING!!!\nGlobal neon error has been occured.\n")
 	sys.exit(-1)
 atexit.register(neon.ne_sock_exit)
-#validation
+#prototypes of callbacks
 NeAuth = CFUNCTYPE(c_int, c_void_p, c_char_p, c_int, c_char_p, c_char_p)
+NePropView = CFUNCTYPE(None, c_void_p, c_void_p, c_void_p)
+NePropIter = CFUNCTYPE(c_int, c_void_p, c_char_p, c_void_p)
+NeCertVer = CFUNCTYPE(c_int, c_void_p, c_int, c_void_p)
 
 if __name__ == '__main__':  # this part of program exec only if webDAV runs from terminal, konsole, cmd, etc.
 	longopts = ['oauth', 'verbose']  # long flags with two minuses
