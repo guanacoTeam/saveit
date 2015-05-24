@@ -9,6 +9,7 @@ Flags:
 """
 # -*- coding : utf8 -*-
 #import pyneon
+import requests
 import ctypes
 import kerberos
 
