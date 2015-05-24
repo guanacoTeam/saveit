@@ -10,8 +10,9 @@ Flags:
 # -*- coding : utf8 -*-
 #import pyneon
 import ctypes
+import kerberos
 
-import sys, getopt, os
+import sys, atexit, getopt, os
 import urlparse, httplib, json, urllib
 import getpass, base64
 import hashlib, mimetypes, gzip, tempfile
@@ -56,6 +57,7 @@ class webDAV:
 	"""
 	#clouds
 	spaceHost = 'webdav.yandex.ru'
+	port = 443
 	localHost = 'localhost'
 	#for debug
 	#spaceHost = 'localhost:8180'
@@ -80,11 +82,17 @@ class webDAV:
 		self.verbose = args.get('verbose', False)
 		self.authHeader = args.get('authHeader', '')
 		self.user = args.get('login')
+		self.passwd = args.get('password')
 		if args.get('local', True):
 			self.spaceHost = self.localHost
-		passwd = args.get('password')
+			#FIXME: Only for dev purposes
+			local_cert = neon.ne_ssl_cert_read("webdav.pem")
 		#End of parsing
-		self.login(oauth = self.oauth, login = self.user, password = passwd)
+		self.sess = neon.ne_session_create("https", self.spaceHost, self.port)
+		if args.get('local', True):
+			#FIXME: Only for dev purposes
+			neon.ne_ssl_trust_cert(self.sess, local)
+		self.login(oauth = self.oauth, login = self.user, password = self.passwd)
 
 	def login(self, **kargs):
 		"""
@@ -98,6 +106,7 @@ class webDAV:
 		passwd = kargs.get('password')
 		oauth = kargs.get('oauth', False)
 		if len(self.authHeader) == 0:
+			#TODO remove such oauth
 			if oauth:  # Try to use ouath protocol
 				webbrowser.open_new('https://oauth.yandex.ru/authorize?response_type=code&client_id=' + self.getId())
 				code = self.catchCode()
@@ -110,10 +119,17 @@ class webDAV:
 			else:
 				if user is None:  # if login argument isn't passed to constructor, try to take it from dialog
 					self.out.write('Login: ')
-					user = self.inp.readline()[:-1]
+					self.user = self.inp.readline()[:-1]
 				if passwd is None:  # if password argument isn't passed to constructor, try to take it from dialog
-					passwd = getpass.getpass(stream = self.out)
-				self.authHeader = "Basic " + base64.encodestring(user + ':' + passwd).rstrip()  # make authHeader
+					self.passwd = getpass.getpass(stream = self.out)
+				#send our pair to server
+				def validation(userdata, realm, attempts, username, password):
+					username.value = self.user
+					password.value = self.passwd
+					return attempts
+				self.validation = NeAuth(validation)
+				neon.ne_set_server_auth(self.sess, self.validation, None)
+				self.authHeader = "Basic " + base64.encodestring(self.user + ':' + self.passwd).rstrip()  # make authHeader
 
 	def catchCode(self):
 		"""
@@ -438,6 +454,14 @@ class webDAV:
 		"""
 		return self.spaceHost
 
+#Neon init
+neon = ctypes.CDLL("libneon.so")
+if neon.ne_sock_init():
+	sys.stderr.write("WARNING!!!\nGlobal neon error has been occured.\n")
+	sys.exit(-1)
+atexit.register(neon.ne_sock_exit)
+#validation
+NeAuth = CFUNCTYPE(c_int, c_void_p, c_char_p, c_int, c_char_p, c_char_p)
 
 if __name__ == '__main__':  # this part of program exec only if webDAV runs from terminal, konsole, cmd, etc.
 	longopts = ['oauth', 'verbose']  # long flags with two minuses
