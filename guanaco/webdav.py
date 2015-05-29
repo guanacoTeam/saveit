@@ -9,48 +9,11 @@ Flags:
 """
 # -*- coding : utf8 -*-
 #import pyneon
-from ctypes import *
-import requests
-import kerberos
+from proto import *
 
-import sys, atexit, getopt, os
-import urlparse, httplib, json, urllib
-import getpass, base64
-import hashlib, mimetypes, gzip, tempfile
-import xml.etree.ElementTree as ET
-import webbrowser
-from BaseHTTPServer import *
-
-
-def md5(f):
-	"""
-	md5(f) -> md5sum
-	Counts md5 hash sum of the file with path f
-	"""
-	fi = open(f, 'rb')
-	out = hashlib.md5()
-	char = fi.read(1)
-	while char != '':
-		out.update(char)
-		char = fi.read(1)
-	fi.close()
-	return out.hexdigest()
-
-
-def sha256(f):
-	"""
-	sha256(f) -> sha256sum
-	Counts sha256 hash sum of the file with path f
-	"""
-	fi = open(f, 'rb')
-	out = hashlib.sha256()
-	char = fi.read(1)
-	while char != '':
-		out.update(char)
-		char = fi.read(1)
-	fi.close()
-	return out.hexdigest()
-
+def trust(userdata, failures, cert):
+	print "0_o"
+	return c_int(0)
 
 class webDAV:
 	"""
@@ -84,17 +47,16 @@ class webDAV:
 		self.authHeader = args.get('authHeader', '')
 		self.user = args.get('login')
 		self.passwd = args.get('password')
-		if args.get('local', True):
+		if 0 or args.get('local', True):
 			self.spaceHost = self.localHost
 			#FIXME: Only for dev purposes
 			localCert = neon.ne_ssl_cert_read("webdav.pem")
 		#End of parsing
 		self.sess = neon.ne_session_create("https", self.spaceHost, self.port)
-		if args.get('local', True):
+		if 1 or args.get('local', True):
 			#FIXME: Only for dev purposes
-			def trust(a, b, c):
-				return 0
-			neon.ne_ssl_set_verify(self.sess, NeCertVer(trust), None)
+			self.trust = trust
+			neon.ne_ssl_set_verify(self.sess, NeCertVer(self.trust), None)
 		self.login(oauth = self.oauth, login = self.user, password = self.passwd)
 
 	def login(self, **kargs):
@@ -189,16 +151,6 @@ class webDAV:
 				exec(com)
 			return r
 
-	def propIter(self, userdata, pname, value, status):
-		print "\tprop %s value is %s" % (pname.value.name, value)
-		return 0
-
-	def propView(self, userdata, uri, results):
-		#TODO:
-		print "Ok from propView"
-		print uri
-		neon.ne_propset_iterate(results, NePropIter(self.propIter), userdata)
-
 	def listDir(self, *args, **kargs):
 		"""
 		listDir('remote/path'[, inter = False]) -> content of /remote/path
@@ -218,7 +170,18 @@ class webDAV:
 			path += '/'
 		inter = kargs.get('inter', False)
 		if inter:
+			def propIter(userdata, pname, value, status):
+				print "\tprop %s value is %s" % (pname.value.name, value)
+				return 0
+			self.propIter = propIter
+			def propView(userdata, uri, results):
+				print "Ok from propView"
+				print uri
+				#TODO:
+				neon.ne_propset_iterate(results, NePropIter(self.propIter), userdata)
+			self.propView = propView
 			print "Ok from listDir"
+			print "0_o 0_o"
 			ne = neon.ne_simple_propfind(self.sess, path, 1, None, NePropView(self.propView), None)
 			print c_char_p(neon.ne_get_error(self.sess)).value
 		else:
@@ -492,18 +455,6 @@ class webDAV:
 		"""
 		return self.spaceHost
 
-#Neon init
-neon = CDLL("libneon.so")
-if neon.ne_sock_init():
-	sys.stderr.write("WARNING!!!\nGlobal neon error has been occured.\n")
-	sys.exit(-1)
-atexit.register(neon.ne_sock_exit)
-#prototypes of callbacks
-NeAuth = CFUNCTYPE(c_int, c_void_p, c_char_p, c_int, c_char_p, c_char_p)
-NePropView = CFUNCTYPE(None, c_void_p, c_void_p, c_void_p)
-NePropIter = CFUNCTYPE(c_int, c_void_p, c_char_p, c_void_p)
-NeCertVer = CFUNCTYPE(c_int, c_void_p, c_int, c_void_p)
-
 if __name__ == '__main__':  # this part of program exec only if webDAV runs from terminal, konsole, cmd, etc.
 	longopts = ['oauth', 'verbose']  # long flags with two minuses
 	optlist, arg = getopt.gnu_getopt(sys.argv[1:], 'vi:o:e:', longopts)  # parse flags
@@ -520,6 +471,6 @@ if __name__ == '__main__':  # this part of program exec only if webDAV runs from
 	out = open(outName, 'w') if not (outName is None) else sys.stdout
 	err = open(errName, 'w') if not (errName is None) else sys.stderr
 	#make webDAV instance
-	ses = webDAV(inp = inp, out = out, err = err, oauth = oauth, verbose = verbose)
+	ses = webDAV(inp = inp, out = out, err = err, oauth = oauth, verbose = verbose, local = False)
 	#run command
 	ses.run(arg)
